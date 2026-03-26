@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 # SVM Kernels Tutorial: How Different Kernels Change SVM Behaviour
 
 A visual, hands-on tutorial exploring how **Linear**, **Polynomial**, **RBF (Gaussian)**, and **Sigmoid** kernels transform the classification behaviour of Support Vector Machines.
