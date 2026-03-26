@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SVM Kernels Tutorial - How Different Kernels Change SVM Behaviour</title>
+    <meta name="description"
+        content="An interactive tutorial by Muhammad Muzamil exploring how Linear, Polynomial, RBF, and Sigmoid kernels transform the behaviour of Support Vector Machines. Features live visualisations and hands-on code." />
+    <meta name="author" content="Muhammad Muzamil" />
+    <link rel="stylesheet" href="css/style.css" />
+</head>
+
+<body>
+
+    <!-- Accessibility: Skip link -->
+    <a href="#intro" class="skip-link">Skip to main content</a>
+
+    <!-- Progress Bar -->
+    <div id="progress-bar" role="progressbar" aria-label="Reading progress"></div>
+
+    <!-- ═══ NAVIGATION ══════════════════════════════════════════ -->
+    <nav class="navbar navbar--hero" aria-label="Main navigation">
+        <div class="nav-inner">
+            <a href="#" class="nav-logo" aria-label="SVM Kernels Tutorial Home">
+                <svg class="nav-logo-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <circle cx="7" cy="16" r="3" stroke="currentColor" stroke-width="1.8" fill="none" />
+                    <circle cx="17" cy="8" r="3" stroke="currentColor" stroke-width="1.8" fill="none" />
+                    <line x1="9.5" y1="14" x2="14.5" y2="10" stroke="currentColor" stroke-width="1.8"
+                        stroke-linecap="round" />
+                    <line x1="2" y1="20" x2="22" y2="4" stroke="currentColor" stroke-width="1.2" stroke-dasharray="2 3"
+                        opacity="0.4" />
+                </svg>
+                <span class="nav-logo-text">svm<span class="nav-logo-accent">kernels</span></span>
+            </a>
+            <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">&#9776;</button>
+            <ul class="nav-links" role="menubar">
+                <li role="none"><a href="#intro" role="menuitem">Introduction</a></li>
+                <li role="none"><a href="#kernels" role="menuitem">Kernels</a></li>
+                <li role="none"><a href="#comparison" role="menuitem">Comparison</a></li>
+                <li role="none"><a href="#interactive" role="menuitem">Interactive</a></li>
+                <li role="none"><a href="#tuning" role="menuitem">Tuning</a></li>
+                <li role="none"><a href="#results" role="menuitem">Results</a></li>
+                <li role="none"><a href="#references" role="menuitem">References</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- ═══ HERO ════════════════════════════════════════════════ -->
+    <header class="hero" id="hero">
+        <canvas id="hero-canvas" aria-hidden="true"></canvas>
+        <div class="hero-glow hero-glow--1"></div>
+        <div class="hero-glow hero-glow--2"></div>
+        <div class="hero-glow hero-glow--3"></div>
+        <div class="hero-content">
+            <span class="hero-badge">Machine Learning Tutorial</span>
+            <h1>How Different Kernels Change the Behaviour of <span class="highlight">Support Vector Machines</span>
+            </h1>
+            <p class="hero-subtitle">A visual, hands-on guide to understanding why kernel choice matters and how to
+                select the right one for your classification task.</p>
+            <p class="hero-author">By <strong>Muhammad Muzamil</strong></p>
+            <a href="#intro" class="hero-cta">Begin Tutorial &darr;</a>
+        </div>
+    </header>
+
+    <!-- ═══ MAIN CONTENT ═══════════════════════════════════════ -->
+    <main>
+
+        <!-- ─── INTRODUCTION ───────────────────────────────────────── -->
+        <section id="intro" class="section">
+            <div class="section-header reveal">
+                <span class="section-label">Chapter 01</span>
+                <h2>What Is a Support Vector Machine?</h2>
+            </div>
+
+            <!-- Animated SVM Visualization -->
+            <div class="svm-animation-container reveal-scale">
+                <canvas id="svm-anim-canvas"
+                    aria-label="Animated visualization showing how an SVM finds the optimal decision boundary between two classes of data points"></canvas>
+                <div class="svm-anim-overlay">
+                    <span class="svm-anim-label" id="svm-anim-label">Generating data points...</span>
+                </div>
+            </div>
+
+            <p class="lead reveal">A <strong>Support Vector Machine</strong> (SVM) is one of the most elegant supervised
+                learning algorithms in the machine-learning toolbox. First introduced by Vladimir Vapnik and his
+                colleagues at Bell Laboratories in the early 1990s, SVMs have since become a cornerstone technique for
+                classification and regression tasks across diverse domains, from text categorisation and image
+                recognition to bioinformatics and financial modelling.</p>
+
+            <p class="reveal">At its heart, the SVM algorithm searches for the <strong>optimal hyperplane</strong> that
+                separates two classes of data points in feature space. What makes it special is the concept of
+                <em>margin maximisation</em>: instead of finding just any boundary that separates the classes, the SVM
+                finds the one that maximises the distance between the boundary and the nearest data points from each
+                class. These critical boundary-neighbouring points are called <strong>support vectors</strong>, and they
+                alone define the decision boundary. All other training points are irrelevant to the final model.
+            </p>
+
+            <div class="figure-container reveal-scale">
+                <img src="figures/svm_math_intuition.png"
+                    alt="Diagram showing a linear SVM with the decision boundary (solid white line), margin boundaries (dashed lines), and circled support vectors on a dark background with two classes of scattered points" />
+                <div class="figure-caption">Figure 1. The linear SVM finds the hyperplane that maximises the
+                    margin between classes. Support vectors (circled in orange) are the critical points that define this
+                    boundary. Moving any non-support-vector point would not change the decision boundary.</div>
+            </div>
+
+            <p class="reveal">Mathematically, for training data (x<sub>i</sub>, y<sub>i</sub>) where y<sub>i</sub>
+                &isin; {-1, +1}, the SVM
+                optimisation problem is:</p>
+
+            <div class="code-block reveal">
+                <div class="code-header">
+                    <div class="code-dots"><span></span><span></span><span></span></div>
+                    <span class="code-lang">Optimisation</span>
+                </div>
+                <pre><code>    minimise    &frac12; ||w||&sup2;
+    subject to  y&#x1D62;(w &middot; x&#x1D62; + b) &ge; 1   &forall; i</code></pre>
+            </div>
+
+            <p class="reveal">This elegant formulation has a powerful implication: the solution depends only on the
+                <em>dot products</em> between data points, not on the data points themselves. This is precisely what
+                opens the door to the <strong>kernel trick</strong>. The concept that makes SVMs truly exceptional.
+            </p>
+
+            <div class="insight coral reveal">
+                <span class="insight-icon">&#128161;</span>
+                <p><strong>The Kernel Trick</strong> is the key insight: instead of explicitly mapping data into a
+                    higher-dimensional space (which could be computationally prohibitive or even infinite-dimensional),
+                    we replace every dot product with a kernel function:
+                    <code>K(x&#x1D62;, x&#x2C7;) = &phi;(x&#x1D62;) &middot; &phi;(x&#x2C7;)</code>. This allows SVMs to
+                    learn non-linear decision boundaries while operating in the original feature space. The choice of
+                    kernel function fundamentally changes what kind of boundaries the SVM can learn, and that is
+                    precisely what this tutorial explores.
+                </p>
+            </div>
+        </section>
+
+        <div class="divider"></div>
+
+        <!-- ─── THE FOUR KERNELS ───────────────────────────────────── -->
+        <section id="kernels" class="section section-wide">
+            <div class="section-header reveal">
+                <span class="section-label">Chapter 02</span>
+                <h2>The Four Kernel Functions</h2>
+            </div>
+
+            <p class="reveal">Scikit-learn&rsquo;s SVM implementation provides four built-in kernel functions, each
+                producing a fundamentally different type of decision boundary. Understanding their mathematical
+                formulations helps us predict when each kernel will excel or struggle.</p>
+
+            <div class="kernel-grid stagger">
+                <div class="card kernel-card linear">
+                    <div class="k-icon">L</div>
+                    <h4>Linear Kernel</h4>
+                    <span class="formula">K(x, y) = x &middot; y</span>
+                    <p>Produces a straight hyperplane. Computationally the fastest and most interpretable kernel. Ideal
+                        when the data is linearly separable or when the number of features greatly exceeds the number of
+                        samples (e.g., text classification).</p>
+                </div>
+                <div class="card kernel-card poly">
+                    <div class="k-icon">P</div>
+                    <h4>Polynomial Kernel</h4>
+                    <span class="formula">K(x, y) = (&gamma;x&middot;y + r)<sup>d</sup></span>
+                    <p>Generates curved decision boundaries whose complexity is controlled by the polynomial degree
+                        <em>d</em>. Degree 2 gives elliptical boundaries; degree 3 and above can learn increasingly
+                        complex shapes. A good middle ground between linear and RBF.
+                    </p>
+                </div>
+                <div class="card kernel-card rbf">
+                    <div class="k-icon">R</div>
+                    <h4>RBF (Gaussian) Kernel</h4>
+                    <span class="formula">K(x, y) = exp(-&gamma;||x-y||&sup2;)</span>
+                    <p>The most versatile and widely used kernel. It maps data into an infinite-dimensional feature
+                        space, enabling it to model arbitrarily complex boundaries. The &gamma; parameter controls the
+                        &ldquo;reach&rdquo; of each data point&rsquo;s influence; it is the single most important
+                        hyperparameter to tune.</p>
+                </div>
+                <div class="card kernel-card sigmoid">
+                    <div class="k-icon">S</div>
+                    <h4>Sigmoid Kernel</h4>
+                    <span class="formula">K(x, y) = tanh(&gamma;x&middot;y + r)</span>
+                    <p>Inspired by the activation function in neural networks. However, it does not always satisfy
+                        Mercer&rsquo;s condition (positive semi-definiteness), which means it is not guaranteed to
+                        produce a valid kernel. Use with caution. It often underperforms RBF in practice.</p>
+                </div>
+            </div>
+
+            <div class="stats-row reveal">
+                <div class="card stat-card">
+                    <span class="num" data-target="4" data-suffix="">0</span>
+                    <span class="label">Kernel Types</span>
+                </div>
+                <div class="card stat-card">
+                    <span class="num" data-target="400" data-suffix="">0</span>
+                    <span class="label">Training Samples</span>
+                </div>
+                <div class="card stat-card">
+                    <span class="num" data-target="13" data-suffix="">0</span>
+                    <span class="label">Figures Generated</span>
+                </div>
+                <div class="card stat-card">
+                    <span class="num" data-target="3" data-suffix="">0</span>
+                    <span class="label">Datasets Tested</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- ─── VISUAL COMPARISON ──────────────────────────────────── -->
+        <section id="comparison" class="section">
+            <div class="section-header reveal">
+                <span class="section-label">Chapter 03</span>
+                <h2>Visual Comparison: Decision Boundaries</h2>
+            </div>
+
+            <p class="reveal">To truly understand how each kernel behaves, we trained all four on scikit-learn&rsquo;s
+                <code>make_moons</code> dataset, two interleaving half-circles with added Gaussian noise. This
+                dataset is deliberately <em>not</em> linearly separable, which exposes the strengths and weaknesses of
+                each kernel function.
+            </p>
+
+            <div class="figure-container reveal-scale">
+                <img src="figures/kernel_comparison_grid.png"
+                    alt="2-by-2 grid showing decision boundaries of Linear, Polynomial, RBF, and Sigmoid kernels on the moons dataset" />
+                <div class="figure-caption">Figure 2. Decision boundaries of all four kernels on the moons
+                    dataset. Coloured regions indicate predicted class: blue and orange. Circled points are support
+                    vectors. The linear kernel draws a straight line that misclassifies many points, while RBF creates a
+                    smooth contour that hugs the data geometry.</div>
+            </div>
+
+            <h3 class="reveal">What the Boundaries Reveal</h3>
+
+            <p class="reveal">The <strong>linear kernel</strong> is unable to separate the interleaving
+                crescents. It draws a straight line through the middle, misclassifying a significant portion of
+                both classes. The <strong>polynomial kernel</strong> (degree 3) curves the boundary and captures most of
+                the moon shape, though not perfectly. The <strong>RBF kernel</strong> produces the smoothest, most
+                accurate boundary, adapting precisely to the natural geometry of the data. The <strong>sigmoid
+                    kernel</strong> creates an unpredictable boundary that fails to capture the data structure, a
+                consequence of it not always being a valid Mercer kernel.</p>
+
+            <h3 class="reveal">The Circles Test: Where Linear Completely Fails</h3>
+
+            <p class="reveal">The circles dataset isolates one class entirely within the other, a scenario where
+                <em>no</em> linear boundary can succeed. As expected, only the RBF kernel correctly classifies both the
+                inner and outer rings. This dramatically illustrates why kernel choice is not merely a hyperparameter to
+                tune but a fundamental architectural decision.
+            </p>
+
+            <div class="figure-container reveal-scale">
+                <img src="figures/circles_comparison.png"
+                    alt="2-by-2 grid comparing kernels on concentric circles data. Only RBF perfectly classifies both rings" />
+                <div class="figure-caption">Figure 3. On the concentric circles dataset, only the RBF kernel
+                    correctly learns the circular boundary. Linear and sigmoid kernels achieve essentially random-chance
+                    accuracy, while the polynomial kernel partially captures the shape at higher degrees.</div>
+            </div>
+        </section>
+
+        <div class="divider"></div>
+
+        <!-- ─── INTERACTIVE DEMO ───────────────────────────────────── -->
+        <section id="interactive" class="section">
+            <div class="section-header reveal">
+                <span class="section-label">Chapter 04</span>
+                <h2>Interactive: See Gamma in Action</h2>
+            </div>
+
+            <p class="reveal">The &gamma; (gamma) parameter in the RBF kernel controls the <em>radius of influence</em>
+                of each training sample. Drag the slider below to see how the decision landscape changes in real time as
+                gamma varies from smooth underfitting to extreme overfitting:</p>
+
+            <div class="interactive-panel reveal-scale">
+                <h3>RBF Kernel : Live Gamma Visualisation</h3>
+                <p>Drag the slider to change &gamma; and observe how the decision regions morph. Low gamma produces
+                    broad, overlapping influence zones (underfitting). High gamma creates tight, isolated islands around
+                    each point (overfitting).</p>
+
+                <div class="slider-group">
+                    <span class="slider-label">&gamma; =</span>
+                    <input type="range" id="gamma-slider" min="0.1" max="20" step="0.1" value="1.0"
+                        aria-label="Gamma parameter value" />
+                    <span class="slider-value" id="gamma-value">1.0</span>
+                </div>
+
+                <canvas id="gamma-canvas"
+                    aria-label="Interactive visualization of RBF kernel decision boundary changing with gamma parameter"></canvas>
+            </div>
+
+            <div class="insight info reveal">
+                <span class="insight-icon">&#128269;</span>
+                <p><strong>How to read this:</strong> Blue regions indicate areas where the model predicts Class A;
+                    coral/orange regions indicate Class B. As you increase gamma, notice how the regions fragment into
+                    smaller islands centred on individual data points, a classic sign of overfitting. A gamma value
+                    around 1.0-3.0 typically produces the best generalisation for this dataset.</p>
+            </div>
+        </section>
+
+        <!-- ─── PARAMETER TUNING ───────────────────────────────────── -->
+        <section id="tuning" class="section">
+            <div class="section-header reveal">
+                <span class="section-label">Chapter 05</span>
+                <h2>Parameter Tuning Deep Dive</h2>
+            </div>
+
+            <p class="reveal">Choosing the right kernel is only half the battle. Each kernel has hyperparameters that
+                dramatically affect the model&rsquo;s behaviour. Here we examine the three most critical parameters:
+                <strong>gamma</strong>, <strong>C</strong> (regularisation), and <strong>polynomial degree</strong>.
+            </p>
+
+            <h3 class="reveal">The Gamma Parameter (&gamma;)</h3>
+            <p class="reveal">For the RBF kernel, gamma defines how quickly the influence of a training point decays
+                with distance. With low gamma, each point has a wide sphere of influence, leading to smooth, generalised
+                boundaries. With high gamma, points have narrow influence, producing complex boundaries that wrap
+                tightly around training data, a recipe for overfitting on unseen data.</p>
+
+            <div class="figure-container reveal-scale">
+                <img src="figures/gamma_effect.png"
+                    alt="Six panels showing RBF kernel with gamma values from 0.1 to 50, demonstrating the progression from underfitting to extreme overfitting" />
+                <div class="figure-caption">Figure 4. Effect of gamma on the RBF kernel decision boundary. At
+                    &gamma;=0.1 the boundary is excessively smooth; at &gamma;=50 it wraps around individual points. The
+                    optimal range for most datasets is &gamma;=0.5-5.0.</div>
+            </div>
+
+            <div class="insight warn reveal">
+                <span class="insight-icon">&#9888;&#65039;</span>
+                <p><strong>Overfitting alert:</strong> At &gamma;=50, the model achieves near-perfect training accuracy
+                    but would fail spectacularly on new data. This is a textbook example of the bias-variance trade-off.
+                    Always evaluate gamma using cross-validation on a held-out set.</p>
+            </div>
+
+            <h3 class="reveal">The Regularisation Parameter (C)</h3>
+            <p class="reveal">The <code>C</code> parameter controls the penalty for misclassifying training points. A
+                small C allows a wider margin with more violations (soft margin), producing a simpler model. A large C
+                penalises every training error, forcing the boundary to twist and turn to correctly classify every
+                point, potentially at the cost of generalisation.</p>
+
+            <div class="figure-container reveal-scale">
+                <img src="figures/C_regularization.png"
+                    alt="Six panels showing the effect of C from 0.01 to 1000 on the RBF kernel decision boundary" />
+                <div class="figure-caption">Figure 5. C=0.01 produces an overly simple boundary; C=1000 overfits.
+                    The sweet spot is typically C=1 to C=10, though this depends on the noise level in your data.</div>
+            </div>
+
+            <h3 class="reveal">Polynomial Degree</h3>
+            <p class="reveal">For the polynomial kernel, the degree parameter determines the maximum curvature of the
+                boundary. Degree 2 produces elliptical regions; degree 3 introduces inflection points; degrees 5+ create
+                highly irregular boundaries that are prone to overfitting and numerical instability.</p>
+
+            <div class="figure-container reveal-scale">
+                <img src="figures/polynomial_degree_effect.png"
+                    alt="Six panels showing polynomial kernels with degrees 2 through 7" />
+                <div class="figure-caption">Figure 6. Effect of polynomial degree. Degree 3 is generally the best
+                    starting point. Degrees above 5 produce increasingly erratic and unstable boundaries.</div>
+            </div>
+
+            <div class="code-block reveal">
+                <div class="code-header">
+                    <div class="code-dots"><span></span><span></span><span></span></div>
+                    <span class="code-lang">Python</span>
+                    <button class="code-copy" aria-label="Copy code to clipboard">Copy</button>
+                </div>
+                <pre><code><span class="kw">from</span> <span class="nb">sklearn</span> <span class="kw">import</span> svm
+<span class="kw">from</span> <span class="nb">sklearn.model_selection</span> <span class="kw">import</span> GridSearchCV
+
+<span class="cm"># Define the parameter grid for systematic tuning</span>
+param_grid <span class="op">=</span> {
+    <span class="st">'C'</span>:     [<span class="num">0.1</span>, <span class="num">1</span>, <span class="num">10</span>, <span class="num">100</span>],
+    <span class="st">'gamma'</span>: [<span class="st">'scale'</span>, <span class="num">0.1</span>, <span class="num">0.5</span>, <span class="num">1</span>, <span class="num">5</span>],
+    <span class="st">'kernel'</span>: [<span class="st">'rbf'</span>]
+}
+
+<span class="cm"># 5-fold cross-validation grid search</span>
+grid <span class="op">=</span> GridSearchCV(
+    svm.<span class="fn">SVC</span>(), param_grid,
+    <span class="st">cv</span><span class="op">=</span><span class="num">5</span>, <span class="st">scoring</span><span class="op">=</span><span class="st">'accuracy'</span>, <span class="st">refit</span><span class="op">=</span><span class="nb">True</span>
+)
+grid.<span class="fn">fit</span>(X_train, y_train)
+
+<span class="kw">print</span>(<span class="st">f"Best params: </span>{grid.best_params_}<span class="st">"</span>)
+<span class="kw">print</span>(<span class="st">f"Best CV accuracy: </span>{grid.best_score_:<span class="st">.3f}</span><span class="st">"</span>)</code></pre>
+            </div>
+        </section>
+
+        <div class="divider"></div>
+
+        <!-- ─── QUANTITATIVE RESULTS ───────────────────────────────── -->
+        <section id="results" class="section">
+            <div class="section-header reveal">
+                <span class="section-label">Chapter 06</span>
+                <h2>Quantitative Results &amp; Analysis</h2>
+            </div>
+
+            <p class="reveal">To evaluate generalisation performance, we split the moons dataset 70/30 into training and
+                test sets (random_state=42 for reproducibility). Each kernel was trained on the training set and
+                evaluated on the unseen test set.</p>
+
+            <div class="figure-container reveal-scale">
+                <img src="figures/accuracy_comparison.png"
+                    alt="Bar chart comparing train and test accuracy for Linear, Polynomial, RBF, and Sigmoid kernels" />
+                <div class="figure-caption">Figure 7. Train vs test accuracy by kernel. RBF achieves the highest
+                    test accuracy with strong generalisation. The linear kernel shows consistent but poor performance on
+                    this non-linear task. Note the sigmoid kernel's particularly low scores.</div>
+            </div>
+
+            <div class="figure-container reveal-scale">
+                <img src="figures/confusion_matrices.png"
+                    alt="Four confusion matrices showing prediction counts for each kernel on the test set" />
+                <div class="figure-caption">Figure 8. Confusion matrices for each kernel on the held-out test
+                    set. The RBF and polynomial kernels show the fewest misclassifications, while linear and sigmoid
+                    produce noticeably more errors on both classes.</div>
+            </div>
+
+            <h3 class="reveal">Real-World Validation: The Iris Dataset</h3>
+            <p class="reveal">We extended our analysis to Fisher&rsquo;s classic Iris dataset (1936) using only the
+                sepal length and sepal width features, creating a challenging 3-class classification problem. The
+                results reinforce our findings, the RBF kernel handles the overlapping class boundaries most
+                effectively, followed by the polynomial kernel. The linear kernel creates straight-line partitions that
+                inevitably misclassify the overlapping central region.</p>
+
+            <div class="figure-container reveal-scale">
+                <img src="figures/iris_kernels.png"
+                    alt="Four-panel comparison of kernel decision boundaries on the Iris dataset with three classes" />
+                <div class="figure-caption">Figure 9. Kernel comparison on the Iris dataset (3-class problem
+                    using sepal features). RBF and polynomial kernels handle the overlapping Versicolor-Virginica
+                    boundary best.</div>
+            </div>
+
+            <h3 class="reveal">Summary Comparison</h3>
+            <div class="table-wrap reveal">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Criterion</th>
+                            <th>Linear</th>
+                            <th>Polynomial</th>
+                            <th>RBF (Gaussian)</th>
+                            <th>Sigmoid</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Best for</strong></td>
+                            <td>Linearly separable data, high-dimensional sparse data</td>
+                            <td>Moderate non-linearity, image features</td>
+                            <td>Complex non-linear patterns, general-purpose</td>
+                            <td>Niche, neural-net-style activations</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Computational speed</strong></td>
+                            <td>Fastest</td>
+                            <td>Moderate</td>
+                            <td>Moderate</td>
+                            <td>Moderate</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Overfitting risk</strong></td>
+                            <td>Low</td>
+                            <td>Medium (degree-dependent)</td>
+                            <td>Medium-High (gamma-dependent)</td>
+                            <td>Unpredictable</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Key hyperparameters</strong></td>
+                            <td>C</td>
+                            <td>degree, coef0, C</td>
+                            <td>gamma, C</td>
+                            <td>gamma, coef0, C</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Mercer&rsquo;s condition</strong></td>
+                            <td>Always valid</td>
+                            <td>Always valid</td>
+                            <td>Always valid</td>
+                            <td>Not guaranteed</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="insight tip reveal">
+                <span class="insight-icon">&#128640;</span>
+                <p><strong>Practical recommendation:</strong> When in doubt, start with the RBF kernel. It is the
+                    most versatile choice. Use <code>GridSearchCV</code> or <code>RandomizedSearchCV</code> to
+                    systematically find the optimal C and gamma values. Only switch to a linear kernel if you need
+                    faster training, better interpretability, or if your feature count greatly exceeds the sample count.
+                </p>
+            </div>
+        </section>
+
+        <!-- ─── REFERENCES ─────────────────────────────────────────── -->
+        <section id="references" class="section">
+            <div class="section-header reveal">
+                <span class="section-label">Resources</span>
+                <h2>References &amp; Further Reading</h2>
+            </div>
+
+            <ol class="ref-list reveal">
+                <li>Cortes, C. &amp; Vapnik, V. (1995). Support-vector networks. <em>Machine Learning</em>, 20(3),
+                    273-297. <a href="https://doi.org/10.1007/BF00994018" target="_blank"
+                        rel="noopener">doi:10.1007/BF00994018</a></li>
+                <li>Boser, B. E., Guyon, I. M. &amp; Vapnik, V. N. (1992). A training algorithm for optimal margin
+                    classifiers. <em>Proc. 5th Annual Workshop on Computational Learning Theory (COLT)</em>,
+                    144-152.</li>
+                <li>Sch&ouml;lkopf, B. &amp; Smola, A. J. (2002). <em>Learning with Kernels: Support Vector Machines,
+                        Regularization, Optimization, and Beyond</em>. MIT Press.</li>
+                <li>Hsu, C.-W., Chang, C.-C. &amp; Lin, C.-J. (2003). A practical guide to support vector
+                    classification. <a href="https://www.csie.ntu.edu.tw/~cjlin/papers/guide/guide.pdf" target="_blank"
+                        rel="noopener">Technical report, National Taiwan University</a>.</li>
+                <li>Scikit-learn Developers (2023). Support Vector Machines documentation. <a
+                        href="https://scikit-learn.org/stable/modules/svm.html" target="_blank"
+                        rel="noopener">scikit-learn.org</a></li>
+                <li>Raschka, S. (2015). <em>Python Machine Learning</em>. Packt Publishing. ISBN 978-1783555130.</li>
+                <li>Pedregosa, F. et al. (2011). Scikit-learn: Machine Learning in Python. <em>Journal of Machine
+                        Learning Research</em>, 12, 2825-2830.</li>
+                <li>Fisher, R. A. (1936). The use of multiple measurements in taxonomic problems. <em>Annals of
+                        Eugenics</em>, 7(2), 179-188.</li>
+            </ol>
+
+            <p class="reveal" style="margin-top: 2rem;">
+                <strong>GitHub Repository:</strong> <a href="#"
+                    style="color:var(--accent-coral);">https://github.com/muzamilahmad7/Machine-Learning-Tutorial</a>
+                &nbsp;&bull;&nbsp;
+                <strong>License:</strong> <a href="https://opensource.org/licenses/MIT"
+                    style="color:var(--accent-coral);">MIT</a>
+            </p>
+        </section>
+
+    </main>
+
+    <!-- ═══ FOOTER ══════════════════════════════════════════════ -->
+    <footer class="footer">
+        <p><strong>SVM Kernels Tutorial</strong> &copy; 2025 Muhammad Muzamil &middot; Licensed under <a
+                href="https://opensource.org/licenses/MIT">MIT License</a></p>
+        <p style="margin-top: 0.3rem;">Built as part of a Machine Learning &amp; Neural Computation module assignment.
+        </p>
+    </footer>
+
+    <script src="js/main.js"></script>
+</body>
+
+</html>
